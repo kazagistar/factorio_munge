@@ -44,6 +44,7 @@ if __name__ == "__main__":
             out.write(f'{t},{n}\n')
             
     sections = []
+    id = 1
     chunks = [signals[0:200], signals[200:400], signals[400:]] #hardcoded lol
     for (ci, chunk) in enumerate(chunks, start=1):
         section = []
@@ -55,11 +56,12 @@ if __name__ == "__main__":
                     "name": sig,
                     "quality": quality,
                     "comparator": "=",
-                    "count": 1,
+                    "count": id,
                 }
                 if typ:
                     filter["type"] = typ
                 section.append(filter)
+                id += 1
                 i += 1
         sections.append({
             "index": ci,
