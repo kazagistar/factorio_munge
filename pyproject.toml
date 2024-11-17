@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "factorio-munge"
+version = "0.1.0"
+description = "Just some hacks for dealing with factorio blueprints"
+authors = ["kazagistar <kazagistar@gmail.com>"]
+license = "GPL"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+SLPP = "^1.2.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
