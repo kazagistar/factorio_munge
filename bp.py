@@ -5,12 +5,16 @@ import collections
 from enum import Enum
 
 def _loadsignals():
-    collected = collections.OrderedDict()
+    collected = []
+    typelookup = collections.defaultdict(list)
     for line in open('inputs/allsignals.csv').readlines():
         name, type = line.split(',')
-        collected[name.strip()] = type.strip()
-    return collected
-SIGNALS = _loadsignals()
+        name = name.strip()
+        type = type.strip()
+        collected.append((name.strip(), type.strip()))
+        typelookup[name].append(type)
+    return collected, typelookup
+SIGNALS, SIGNALS_TYPE_LOOKUP = _loadsignals()
 VERSION = 562949954404356
 
 QUALITIES = {
@@ -56,10 +60,19 @@ def indexedExport(unindexed, start=1):
     return out
 
 class Signal:
-    def __init__(self, name, quality="normal"):
+    def __init__(self, name, quality="normal", type=None):
         self.name = name
-        self.type = SIGNALS[name]
         self.quality = QUALITIES[quality]
+        if type == None:
+            candidates = SIGNALS_TYPE_LOOKUP[self.name]
+            if len(candidates) == 1:
+                self.type = candidates[0]
+            elif 'item' in candidates:
+                self.type = 'item'
+            else:
+                raise Exception(f"Ambiguous type for signal {name}")
+        else:
+            self.type = type
     
     def export(self):
         base = {
