@@ -45,6 +45,9 @@ def encode(blueprint):
     paste = b'0' + encoded
     return paste.decode()
 
+def pp(data):
+    print(json.dumps(data, indent=2))
+
 def indexedExport(unindexed, start=1):
     out = []
     for i, exported in enumerate(unindexed, start = start):
@@ -198,9 +201,12 @@ class ConstantCombinator(Entity):
         self.desc = desc
         self.filters = collections.OrderedDict()
         for key, value in signals:
-            if not isinstance(key, Signal):
-                key = Signal(key)
-            self.filters[key] = value
+            self.add(key, value)
+
+    def add(self, key, value):
+        if not isinstance(key, Signal):
+            key = Signal(key)
+        self.filters[key] = value
 
     def export(self):
         base = super().export()

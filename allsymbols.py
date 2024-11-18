@@ -1,35 +1,6 @@
-import base64
-import zlib
-import json
+from bp import *
 
-def decode(paste):
-    encoded = paste[1:]
-    zipped = base64.b64decode(encoded)
-    text = zlib.decompress(zipped)
-    blueprint = json.loads(text)
-    return blueprint
-
-def encode(blueprint):
-    text = json.dumps(blueprint)
-    zipped = zlib.compress(text.encode('utf-8'))
-    encoded = base64.b64encode(zipped)
-    paste = b'0' + encoded
-    return paste.decode()
-
-def newbp():
-    return {
-                "blueprint": {
-                    "icons":[],
-                    "entities": [],
-                    "item": "blueprint",
-                    "version": 562949954338818
-                }
-            }
-
-def pp(data):
-    print(json.dumps(data, indent=2))
-
-if __name__ == "__main__":
+def extract_signals():
     signals = []
     bp = decode(open('inputs/allsymbols.bp').read())
     entities = bp['blueprint']['entities']
@@ -39,43 +10,31 @@ if __name__ == "__main__":
             for filter in section['filters']:
                 signals.append((filter['name'], filter.get('type') or ''))
     signals.append(('signal-dot', 'virtual'))
+    return signals
+
+if __name__ == "__main__":
+    signals = extract_signals()
     with open('outputs/allsymbols.csv', 'w') as out:
         for (t,n) in signals:
             out.write(f'{t},{n}\n')
             
-    sections = []
-    id = 1
-    chunks = [signals[0:200], signals[200:400], signals[400:]] #hardcoded lol
-    for (ci, chunk) in enumerate(chunks, start=1):
-        section = []
-        i = 1
-        for (sig, typ) in chunk:
-            for quality in ['normal', 'uncommon', 'rare', 'epic', 'legendary']:
-                filter = {
-                    "index": i,
-                    "name": sig,
-                    "quality": quality,
-                    "comparator": "=",
-                    "count": id,
-                }
-                if typ:
-                    filter["type"] = typ
-                section.append(filter)
-                id += 1
-                i += 1
-        sections.append({
-            "index": ci,
-            "filters": section
-        })
-
-    entity = {
-        "entity_number": 1,
-        "name": "constant-combinator",
-        "position": {"x": 0.5, "y": 0.5},
-        "control_behavior": {"sections": { "sections": sections}}
-    }
-    bp = newbp()
-    bp['blueprint']['entities'].append(entity)
-
+    allone = ConstantCombinator()
+    increasing = ConstantCombinator()
+    qgrouped = ConstantCombinator()
+    i = 1
+    qi = 1
+    for (sig, _) in signals:
+        for quality in ['normal', 'uncommon', 'rare', 'epic', 'legendary']:
+            allone.add(Signal(sig, quality), 1)
+            increasing.add(Signal(sig, quality), i)
+            qgrouped.add(Signal(sig, quality), qi)
+            i += 1
+        qi += 1
+    Book("Every Signal Combinators", icons=[Signal("signal-X")], content=[
+        Blueprint("Every Signal = 1", content=[allone]),
+        Blueprint("Every Signal w/ unique natural number", content=[increasing]),
+        Blueprint("Every Signal quality grouped", "Same signals with different qualities all have the same number", content=[qgrouped])
+    ])
+ 
     with open("outputs/allsymbols.bp", 'w') as f:
         f.write(encode(bp))
