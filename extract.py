@@ -41,3 +41,7 @@ def getrecipes():
 if __name__ == '__main__':
     recipes = getrecipes()
     print(f"Loaded and cached {len(recipes)} recipes")
+    categories = set()
+    for _, recipe in recipes.items():
+        categories.add(recipe.get('category'))
+    print(categories)
