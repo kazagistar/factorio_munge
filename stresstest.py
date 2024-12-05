@@ -1,10 +1,8 @@
 from bp import *
 
-bp = Blueprint()
-b = Book(content=[bp for _ in range(12)])
-for i in range(5):
-    b = Book(content=[b for _ in range(12)])
-b.label = "Endless Nothing"
+dc = DeciderCombinator(outputs=[r("signal-X")])
 
-with open("outputs/endless.bp", 'w') as f:
-    f.write(encode(b.export()))
+for i in range(100000):
+    dc.conditions.append([[r("signal-X"), '=',  i]])
+
+print(encode(Blueprint(content=[dc]).export()))

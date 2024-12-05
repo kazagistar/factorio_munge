@@ -103,6 +103,9 @@ class Signal:
     
     def __repr__(self):
         return f"Signal(name={self.name}{f', quality={self.quality}' if self.quality != 'normal' else ''}{f', type={self.type}' if self.type != 'item' else ''})"
+    
+    def __hash__(self) -> int:
+        return hash((self.name, self.quality, self.type))
 
     @classmethod
     def convert(cls, src):
@@ -110,8 +113,6 @@ class Signal:
             return src
         else:
             return cls(src)
-    
-
 
 class Book:
     def __init__(self, label=None, desc=None, icons=[], content=[]):
@@ -280,7 +281,7 @@ class _ColoredSignal:
             return self._monocolorToSympy('r') + self._monocolorToSympy('g')
         
     def _monocolorToSympy(self, color):
-        return sympy.Symbol(f"{color}\{self.signal.name}\{self.signal.quality}\{self.signal.type}", integer=True)
+        return sympy.UnevaluatedExpr(sympy.Symbol(f"{color}\{self.signal.name}\{self.signal.quality}\{self.signal.type}", integer=True))
 
     def _otherToSympy(_, other):
         if isinstance(other, _ColoredSignal):
@@ -320,7 +321,7 @@ class _ColoredSignal:
         elif isinstance(symbol, sympy.Integer):
             return int(round(symbol.evalf()))
         else:
-            raise ValueError(f"Unknown leaf symbol {symbol}")
+            raise ValueError(f"Unknown leaf symbol '{symbol}' ({symbol.func})")
 
 def r(signal):
     return _ColoredSignal(signal, 'r')
@@ -333,7 +334,11 @@ class DeciderCombinator(Entity):
     def __init__(self, desc=None, x=0, y=0, conditions=None, outputs=[]):
         super().__init__("decider-combinator", x, y)
         self.desc = desc
-        self.conditions = self._parse_dnf(sympy.to_dnf(sympy.simplify(conditions)))
+        try:
+            conditions = conditions.doit()
+        except AttributeError:
+            pass
+        self.conditions = self._parse_dnf(sympy.to_dnf(conditions))
         self.outputs = outputs
         self.check()
 
@@ -361,12 +366,12 @@ class DeciderCombinator(Entity):
         if expr.func != sympy.Or:
             return [self._parse_and(expr)]
         else:
-            return self._parse_or(expr.args[0]) + self._parse_or(expr.args[1])
+            return [r for arg in expr.args for r in self._parse_or(arg)]
     def _parse_and(self, expr):
         if expr.func != sympy.And:
             return [self._parse_comp(expr)]
         else:
-            return self._parse_and(expr.args[0]) + self._parse_and(expr.args[1])
+            return [r for arg in expr.args for r in self._parse_and(arg)]
     def _parse_comp(self, expr):
         if expr.func in self._sympy2comparator:
             a = _ColoredSignal.fromSympy(expr.args[0])
@@ -490,5 +495,6 @@ class DeciderCombinator(Entity):
 if __name__ == "__main__":
     decider = DeciderCombinator(conditions=~(r("signal-each") != 10) & (r("signal-X") == 10) | (g("signal-X") == rg("signal-anything")),
                                 outputs=["signal-X", ["signal-X", 2]])
+    print(decider.conditions)
     bp = Blueprint(icons=["decider-combinator"], content=[decider]).export()
     print(encode(bp))
