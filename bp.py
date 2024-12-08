@@ -99,6 +99,8 @@ class Signal:
         return base
     
     def __eq__(self, other):
+        if other == None:
+            return False
         return self.name == other.name and self.quality == other.quality and self.type == other.type
     
     def __repr__(self):

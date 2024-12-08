@@ -1,4 +1,9 @@
-import bp
+from bp import *
 
-cc = bp.ConstantCombinator()
-export = bp.Blueprint(content=[cc]).export()
+cc = ConstantCombinator()
+for (i, (sig, typ)) in enumerate(SIGNALS):
+    if i > 100:
+        break
+    cc.add(Signal(name=sig, type=typ), i)
+bp = Blueprint("Numbers to 100", content=[cc])
+print(encode(bp.export()))
