@@ -1,41 +1,48 @@
 """ Read and cache the contents of the logs, extracted with the mod 'Data Raw Serpent' which dumps full factorio state to a log file"""
 
 import os
-from slpp import slpp as lua
 import json
 
-def openlog(folder=None, name="factorio-current.log"):
-    if folder:
-        return open(os.path.join(folder, name))
+def _first_valid(*paths):
+    for path in paths:
+        expanded = os.path.expandvars(path)
+        if os.path.exists(expanded):
+            return expanded
 
-    import platform
-    ostype = platform.system()
-    if ostype == 'Windows':
-        file = os.path.expandvars(f"%APPDATA%\Factorio\{name}")
-    elif ostype == 'Darwin':
-        file = os.path.expandvars(f"$HOME/Library/Application Support/factorio/{name}")
-    elif ostype == 'Linux':
-        file = os.path.expandvars(f"$HOME/.factorio/{name}")
-    else:
+def _run_raw_dump(exe=None):
+    if not exe:
+        exe = _first_valid(
+            r"C:\Program Files (x86)\Steam\steamapps\common\Factorio\bin\x64\factorio.exe",
+            r"C:\Program Files\Factorio\bin\x64\factorio.exe",
+            # TODO add OSX and Linux options properly... idk what the actual path to the executable is on those platforms
+        )
+    import subprocess
+    subprocess.check_call([exe, "--dump-data"])
+
+def _open_raw_dump(userdir=None):
+    if userdir:
+        return open(os.path.join(userdir, "script-output", "data-raw-dump.json"))
+    file = _first_valid(
+        f"%APPDATA%\Factorio\script-output\data-raw-dump.json",
+        f"$HOME/Library/Application Support/factorio/script-output/data-raw-dump.json",
+        f"$HOME/.factorio/script-output/data-raw-dump.json"
+    )
+    if file == None:
         raise Exception("Unsupported OS, provide folder manually")
     return open(file)
 
-header = "Script @__DataRawSerpent__/data-final-fixes.lua:1: "
-footer =  "--[[incomplete output with shared/self-references skipped]]"
-def parselog(file):
-    content = file.read()
-    start = content.find(header) + len(header)
-    end = content.find(footer)
-    everything = lua.decode(content[start:end])
-    return everything
+def _fresh_raw(userdir=None, exe=None):
+    _run_raw_dump(exe)
+    raw = json.load(_open_raw_dump(userdir))
+    return raw
 
-RECIPES_CACHE = 'outputs/recipes.cache'
-def getrecipes():
+def getrecipes(userdir=None, exe=None, cachedir='outputs'):
+    recipe_cache_file = os.path.join(cachedir, "recipes.cache.json")
     try:
-        return json.load(open(RECIPES_CACHE))
+        return json.load(open(recipe_cache_file))
     except FileNotFoundError:
-        recipes = parselog(openlog())['recipe']
-        json.dump(recipes, open(RECIPES_CACHE, 'w'), indent=2)
+        recipes = _fresh_raw()['recipe']
+        json.dump(recipes, open(recipe_cache_file, 'w'), indent=2)
         return recipes
 
 if __name__ == '__main__':
